@@ -1,13 +1,12 @@
-import {getAllOpenIssues} from './issues';
-import {getAllIssueComments} from './comments';
-import persistence from './persistence/fs';
-import {green, red} from 'chalk';
 import api from './github/api';
+import {green, red} from 'chalk';
+import persistence from './persistence';
+import {getAllOpenIssues, getAllIssueComments} from './collection';
 
 const msgs = {
     connecting: green('Connecting to the database...'),
     connected: green('Connected! Fetching data from GitHub'),
-    done: green('All Done!'),
+    done: green('All issue comments have been fetched successfully!'),
     error: red(':(')
 };
 
@@ -19,7 +18,7 @@ const github = api({
 
 log(msgs.connecting);
 
-persistence({ db: 'GitHubPlusOne' }).then(db => {
+persistence.fs({ db: 'GitHubPlusOne' }).then(db => {
     log(msgs.connected);
     const descriptor = {
         repo: 'redux',
@@ -29,24 +28,21 @@ persistence({ db: 'GitHubPlusOne' }).then(db => {
     return getAllOpenIssues({
         api: github,
         ...descriptor
-    }).then(data => {
-        return db.addIssues({
-            data: data,
-            ...descriptor
-        });
+    }).then(issues => {
+        return Promise.all(issues.map(issue => {
+            return getAllIssueComments({
+                api: github,
+                issueID: issue.id,
+                ...descriptor
+            }).then(comments => {
+                return db.addIssueComments({
+                    issueID: issue.id,
+                    comments,
+                    ...descriptor
+                });
+            });
+        }));
     });
-
-    // return getAllIssueComments({
-    //     api: github,
-    //     issueID: 1128,
-    //     ...descriptor
-    // }).then(comments => {
-    //     return db.addIssueComments({
-    //         issueID: 1128,
-    //         comments,
-    //         ...descriptor
-    //     });
-    // });
-}).then(() => log(msgs.done)).catch(err => {
+}).catch(err => {
     log(msgs.error, err);
 }).finally(process.exit);
