@@ -60,7 +60,7 @@ const api = {
             uri: this._uri(`/repos/${owner}/${repo}/issues`),
             qs: {
                 filter: 'all',
-                per_page: 15 // github max
+                per_page: 100 // github max
             }
         });
     },

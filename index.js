@@ -1,38 +1,52 @@
 import {getAllOpenIssues} from './issues';
 import {getAllIssueComments} from './comments';
-import persistence from './persistence/mongo';
+import persistence from './persistence/fs';
+import {green, red} from 'chalk';
 import api from './github/api';
+
+const msgs = {
+    connecting: green('Connecting to the database...'),
+    connected: green('Connected! Fetching data from GitHub'),
+    done: green('All Done!'),
+    error: red(':(')
+};
+
+const log = (...args) => console.log(...args);
 
 const github = api({
     apiToken: process.env.GITHUB_PERSONAL_API_KEY
 });
 
-// persistence({ db: 'GitHubPlusOne' }).then(db => {
-//     getAllOpenIssues({
-//         api: github,
-//         repo: 'redux',
-//         owner: 'rackt'
-//     }).then(data => {
-//         return db.addIssues({
-//             repo: 'redux',
-//             owner: 'rackt',
-//             data: data
-//         });
-//     }).then(process.exit).catch(err => console.error(err.stack));
-// });
+log(msgs.connecting);
 
 persistence({ db: 'GitHubPlusOne' }).then(db => {
-    getAllIssueComments({
-        api: github,
+    log(msgs.connected);
+    const descriptor = {
         repo: 'redux',
-        owner: 'rackt',
-        issueID: 1128
-    }).then(comments => {
-        return db.addIssueComments({
-            repo: 'redux',
-            owner: 'rackt',
-            issueID: 1128,
-            comments
+        owner: 'rackt'
+    };
+
+    return getAllOpenIssues({
+        api: github,
+        ...descriptor
+    }).then(data => {
+        return db.addIssues({
+            data: data,
+            ...descriptor
         });
-    }).then(process.exit).catch(console.error);
-});
+    });
+
+    // return getAllIssueComments({
+    //     api: github,
+    //     issueID: 1128,
+    //     ...descriptor
+    // }).then(comments => {
+    //     return db.addIssueComments({
+    //         issueID: 1128,
+    //         comments,
+    //         ...descriptor
+    //     });
+    // });
+}).then(() => log(msgs.done)).catch(err => {
+    log(msgs.error, err);
+}).finally(process.exit);
