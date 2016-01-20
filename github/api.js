@@ -1,5 +1,12 @@
 import rp from 'request-promise';
 
+export default function createAPIClient(opts) {
+    return Object.create(api).init(opts);
+}
+
+const flattenArray = arr => [].concat.apply([], arr);
+const isDone = metadata => !metadata.pages || !metadata.pages.next;
+
 const api = {
     init({apiToken, baseURI}) {
         if (!apiToken) {
@@ -9,6 +16,10 @@ const api = {
         this.token = apiToken;
         this.baseURI = baseURI || 'https://api.github.com';
         return this;
+    },
+
+    _uri(relPath) {
+        return `${this.baseURI}${relPath}`;
     },
 
     request(opts = {}) {
@@ -38,26 +49,6 @@ const api = {
         });
     },
 
-    _uri(relPath) {
-        return `${this.baseURI}${relPath}`;
-    },
-
-    parsePagination({headers}) {
-        if ((!headers || !headers.link)) return;
-
-        const pages = headers.link.split(',');
-        const pattern = /<(.+?)>;\srel="(\w+?)"/;
-
-        return pages.reduce((accumulator, page) => {
-            const [, uri, rel] = page.match(pattern);
-            accumulator[rel] = {
-                uri,
-                num: uri.match(/page=(\d+)/)[1]
-            };
-            return accumulator;
-        }, {});
-    },
-
     getIssueComments({issueID, repo, owner}) {
         return this.request({
             uri: this._uri(`/repos/${owner}/${repo}/issues/${issueID}/comments`)
@@ -69,7 +60,7 @@ const api = {
             uri: this._uri(`/repos/${owner}/${repo}/issues`),
             qs: {
                 filter: 'all',
-                per_page: 100 // github max
+                per_page: 15 // github max
             }
         });
     },
@@ -88,9 +79,32 @@ const api = {
             remaining: headers['x-ratelimit-remaining'],
             resetTime: new Date(headers['x-ratelimit-reset'] * 1000)
         };
+    },
+
+    parsePagination({headers}) {
+        if ((!headers || !headers.link)) return;
+
+        const pageParts = headers.link.split(',');
+        const pattern = /<(.+?)>;\srel="(\w+?)"/;
+
+        return pageParts.reduce((pages, page) => {
+            const [, uri, rel] = page.match(pattern);
+            pages[rel] = {
+                uri,
+                num: uri.match(/page=(\d+)/)[1]
+            };
+            return pages;
+        }, {});
+    },
+
+    followPaging(uri, buffer = []) {
+        return this.request({uri}).then(res => {
+            const meta = res.metadata;
+            buffer.push(res.body);
+
+            return isDone(meta) ?
+                flattenArray(buffer) :
+                this.followPaging(meta.pages.next.uri, buffer);
+        });
     }
 };
-
-export default function createAPIClient(opts) {
-    return Object.create(api).init(opts);
-}
