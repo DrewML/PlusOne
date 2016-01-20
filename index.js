@@ -1,6 +1,7 @@
 import api from './github/api';
 import {green, red} from 'chalk';
 import persistence from './persistence';
+import parseArgs from 'minimist';
 import {getAllOpenIssues, getAllIssueComments} from './collection';
 
 const msgs = {
@@ -16,13 +17,14 @@ const github = api({
     apiToken: process.env.GITHUB_PERSONAL_API_KEY
 });
 
+const settings = getSettings();
 log(msgs.connecting);
 
-persistence.fs({ db: 'GitHubPlusOne' }).then(db => {
+persistence.mongo({ db: 'GitHubPlusOne' }).then(db => {
     log(msgs.connected);
     const descriptor = {
-        repo: 'redux',
-        owner: 'rackt'
+        repo: settings.repo,
+        owner: settings.owner
     };
 
     return getAllOpenIssues({
@@ -46,3 +48,17 @@ persistence.fs({ db: 'GitHubPlusOne' }).then(db => {
 }).catch(err => {
     log(msgs.error, err);
 }).finally(process.exit);
+
+function getSettings() {
+    const args = parseArgs(process.argv);
+    const required = ['repo', 'owner'];
+
+    required.forEach(opt => {
+        if (!args[opt]) {
+             log(red(`Missing required opt: --${opt}`));
+             process.exit();
+        }
+    });
+
+    return args;
+}
