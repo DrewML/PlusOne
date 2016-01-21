@@ -5,11 +5,6 @@ export default function getClient(opts) {
     return Object.create(mongoPersistence).init(opts);
 };
 
-const COLLECTION_TYPES = {
-    ISSUES: 'issues',
-    COMMENTS: 'comments'
-};
-
 const mongoPersistence = {
     init({host = 'localhost', port = 27017, db = 'GitHubPlusOne'}) {
         const uri = `mongodb://${host}:${port}/${db}`;
@@ -22,21 +17,12 @@ const mongoPersistence = {
         });
     },
 
-    addIssues({repo, owner, data}) {
-        return this.getCollectionByRepo({
-            repo,
-            owner,
-            type: COLLECTION_TYPES.ISSUES
-        }).insert(data);
-    },
-
     addIssueComments({repo, owner, issueID, comments}) {
         return this.getCollectionByRepo({
             repo,
-            owner,
-            type: COLLECTION_TYPES.COMMENTS
+            owner
         }).insert({
-            id: issueID,
+            _id: issueID,
             comments
         });
     },
@@ -48,6 +34,6 @@ const mongoPersistence = {
     },
 
     getCollectionByRepo({repo, owner, type}) {
-        return this.db.collection(`${owner}/${repo}:${type}`);
+        return this.db.collection(`${owner}/${repo}`);
     }
 };

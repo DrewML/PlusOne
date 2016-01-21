@@ -20,7 +20,7 @@ const github = api({
 const settings = getSettings();
 log(msgs.connecting);
 
-persistence.mongo({ db: 'GitHubPlusOne' }).then(db => {
+persistence[settings.persistence]({ db: 'GitHubPlusOne' }).then(db => {
     log(msgs.connected);
     const descriptor = {
         repo: settings.repo,
@@ -50,15 +50,24 @@ persistence.mongo({ db: 'GitHubPlusOne' }).then(db => {
 }).finally(process.exit);
 
 function getSettings() {
-    const args = parseArgs(process.argv);
+    const settings = parseArgs(process.argv);
     const required = ['repo', 'owner'];
+    const optional = {
+        persistence: 'fs'
+    };
 
     required.forEach(opt => {
-        if (!args[opt]) {
-             log(red(`Missing required opt: --${opt}`));
+        if (!settings[opt]) {
+             log(red(`Missing required arg: --${opt}`));
              process.exit();
         }
     });
 
-    return args;
+    Object.keys(optional).forEach(opt => {
+        if (!settings.hasOwnProperty(opt)) {
+            settings[opt] = optional[opt];
+        }
+    });
+
+    return settings;
 }
