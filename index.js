@@ -2,6 +2,7 @@ import fetchAll from './fetch';
 import processAll from './process';
 import parseArgs from 'minimist';
 import {green, red} from 'chalk';
+import Promise from 'bluebird';
 
 const log = (...args) => console.log(...args);
 const msgs = {
@@ -21,13 +22,13 @@ actions[settings.action]();
 function fetch() {
     log(msgs.connecting);
 
-    return fetchAll({
+    return Promise.using(fetchAll({
         apiToken: process.env.GITHUB_PERSONAL_API_KEY,
         repo: settings.repo,
         owner: settings.owner,
         storage: settings.storage,
         dbName: 'GitHubPlusOne'
-    }).then(() => {
+    }), () => {
         log(msgs.done);
         process.exit();
     }).catch(err => {
@@ -37,12 +38,12 @@ function fetch() {
 }
 
 function aggregate() {
-    return processAll({
+    return Promise.using(processAll({
         repo: settings.repo,
         owner: settings.owner,
         storage: settings.storage,
         dbName: 'GitHubPlusOne'
-    }).then(results => {
+    }), results => {
         console.log(results);
         process.exit();
     }).catch(err => {
