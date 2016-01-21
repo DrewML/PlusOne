@@ -14,5 +14,8 @@ export function getCountsByIssue(issues, {idProp, commentsProp}) {
             id: issue[idProp],
             count: getUpvoteComments(issue[commentsProp]).length
         };
-    });
+    }).reduce((counts, issue) => {
+        if (issue.count) counts[issue.id] = issue.count;
+        return counts;
+    }, {});
 }

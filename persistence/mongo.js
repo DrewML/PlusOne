@@ -18,13 +18,14 @@ const mongoPersistence = {
     },
 
     addIssueComments({repo, owner, issueID, comments}) {
-        return this.getCollectionByRepo({
-            repo,
-            owner
-        }).insert({
+        return this.getCollectionByRepo({repo, owner}).insert({
             _id: issueID,
             comments
         });
+    },
+
+    getAllIssues({repo, owner}) {
+        return this.getCollectionByRepo({repo, owner}).find({}).toArray();
     },
 
     getRepoList() {

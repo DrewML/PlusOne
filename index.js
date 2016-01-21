@@ -1,4 +1,5 @@
 import fetchAll from './fetch';
+import processAll from './process';
 import parseArgs from 'minimist';
 import {green, red} from 'chalk';
 
@@ -11,24 +12,48 @@ const msgs = {
 
 const settings = getSettings();
 
-log(msgs.connecting);
+const actions = {
+    fetch,
+    process: aggregate
+};
+actions[settings.action]();
 
-fetchAll({
-    apiToken: process.env.GITHUB_PERSONAL_API_KEY,
-    repo: settings.repo,
-    owner: settings.owner,
-    storage: settings.storage,
-    dbName: 'GitHubPlusOne'
-}).then(() => {
-    log(msgs.done);
-    process.exit();
-}).catch(err => {
-    log(msgs.error, err.stack);
-});
+function fetch() {
+    log(msgs.connecting);
+
+    return fetchAll({
+        apiToken: process.env.GITHUB_PERSONAL_API_KEY,
+        repo: settings.repo,
+        owner: settings.owner,
+        storage: settings.storage,
+        dbName: 'GitHubPlusOne'
+    }).then(() => {
+        log(msgs.done);
+        process.exit();
+    }).catch(err => {
+        log(msgs.error, err.stack);
+        process.exit();
+    });
+}
+
+function aggregate() {
+    return processAll({
+        repo: settings.repo,
+        owner: settings.owner,
+        storage: settings.storage,
+        dbName: 'GitHubPlusOne'
+    }).then(results => {
+        console.log(results);
+        process.exit();
+    }).catch(err => {
+        log(msgs.error, err.stack);
+        process.exit();
+    });
+}
 
 function getSettings() {
     const settings = parseArgs(process.argv);
-    const required = ['repo', 'owner'];
+    const required = ['repo', 'owner', 'action'];
     const optional = {
         storage: 'fs'
     };
