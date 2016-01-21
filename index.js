@@ -1,59 +1,36 @@
-import api from './github/api';
-import {green, red} from 'chalk';
-import persistence from './persistence';
+import fetchAll from './fetch';
 import parseArgs from 'minimist';
-import {getAllOpenIssues, getAllIssueComments} from './collection';
+import {green, red} from 'chalk';
 
+const log = (...args) => console.log(...args);
 const msgs = {
-    connecting: green('Connecting to the database...'),
-    connected: green('Connected! Fetching data from GitHub'),
+    connecting: green('Connecting...'),
     done: green('All issue comments have been fetched successfully!'),
     error: red(':(')
 };
 
-const log = (...args) => console.log(...args);
-
-const github = api({
-    apiToken: process.env.GITHUB_PERSONAL_API_KEY
-});
-
 const settings = getSettings();
+
 log(msgs.connecting);
 
-persistence[settings.persistence]({ db: 'GitHubPlusOne' }).then(db => {
-    log(msgs.connected);
-    const descriptor = {
-        repo: settings.repo,
-        owner: settings.owner
-    };
-
-    return getAllOpenIssues({
-        api: github,
-        ...descriptor
-    }).then(issues => {
-        return Promise.all(issues.map(issue => {
-            return getAllIssueComments({
-                api: github,
-                issueID: issue.id,
-                ...descriptor
-            }).then(comments => {
-                return db.addIssueComments({
-                    issueID: issue.id,
-                    comments,
-                    ...descriptor
-                });
-            });
-        }));
-    });
+fetchAll({
+    apiToken: process.env.GITHUB_PERSONAL_API_KEY,
+    repo: settings.repo,
+    owner: settings.owner,
+    storage: settings.storage,
+    dbName: 'GitHubPlusOne'
+}).then(() => {
+    log(msgs.done);
+    process.exit();
 }).catch(err => {
-    log(msgs.error, err);
-}).finally(process.exit);
+    log(msgs.error, err.stack);
+});
 
 function getSettings() {
     const settings = parseArgs(process.argv);
     const required = ['repo', 'owner'];
     const optional = {
-        persistence: 'fs'
+        storage: 'fs'
     };
 
     required.forEach(opt => {
