@@ -17,9 +17,10 @@ const mongoPersistence = {
         });
     },
 
-    addIssueComments({repo, owner, issueID, comments}) {
+    addIssueComments({repo, owner, issueID, title, comments}) {
         return this.getCollectionByRepo({repo, owner}).insert({
             _id: issueID,
+            title,
             comments
         });
     },

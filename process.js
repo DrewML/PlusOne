@@ -7,6 +7,7 @@ export default function processAll({repo, owner, storage, dbName}) {
         return db.getAllIssues({repo, owner}).then(comments => {
             return getCountsByIssue(comments, {
                 idProp: '_id',
+                titleProp: 'title',
                 commentsProp: 'comments'
             });
         });

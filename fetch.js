@@ -21,6 +21,7 @@ export default function fetchAll({apiToken, repo, owner, storage, dbName}) {
                 }).then(comments => {
                     return db.addIssueComments({
                         issueID: issue.id,
+                        title: issue.title,
                         comments,
                         ...descriptor
                     });

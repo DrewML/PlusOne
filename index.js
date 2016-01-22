@@ -3,6 +3,7 @@ import processAll from './process';
 import parseArgs from 'minimist';
 import {green, red} from 'chalk';
 import Promise from 'bluebird';
+import Table from 'cli-table2';
 
 const log = (...args) => console.log(...args);
 const msgs = {
@@ -44,12 +45,25 @@ function aggregate() {
         storage: settings.storage,
         dbName: 'GitHubPlusOne'
     }), results => {
-        console.log(results);
+        console.log(green(upvotesToTable(results)));
         process.exit();
     }).catch(err => {
         log(msgs.error, err.stack);
         process.exit();
     });
+}
+
+function upvotesToTable(issues) {
+    const table = new Table({
+        head: ['Issue', 'Title', '+1 / 👍']
+    });
+
+    const formatted = issues.map(({id, title, count}) => {
+        return [id, title, count];
+    });
+
+    table.push(...formatted);
+    return table.toString();
 }
 
 function getSettings() {

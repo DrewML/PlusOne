@@ -8,14 +8,14 @@ function getUpvoteComments(comments) {
     return comments.filter(comment => containsUpvote(comment.body));
 }
 
-export function getCountsByIssue(issues, {idProp, commentsProp}) {
+export function getCountsByIssue(issues, {idProp, commentsProp, titleProp}) {
     return issues.map(issue => {
         return {
             id: issue[idProp],
+            title: issue[titleProp],
             count: getUpvoteComments(issue[commentsProp]).length
         };
-    }).reduce((counts, issue) => {
-        if (issue.count) counts[issue.id] = issue.count;
-        return counts;
-    }, {});
+    }).filter(issue => issue.count).sort((a, b) => {
+        return b.count - a.count;
+    }); 
 }
